@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2457d6">
+<title>Gym Log</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap">
+<style>
+:root{--bg:#eef0ec;--card:#fff;--ink:#1b2126;--mute:#5d6770;--line:#d7dbd5;--acc:#2457d6;--accink:#fff;--warn:#b3392c;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14181c;--card:#1d2328;--ink:#e8ecef;--mute:#95a0a9;--line:#2d353b;--acc:#7da2ff;--accink:#0e1a38;--warn:#ff8b7d;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14181c;--card:#1d2328;--ink:#e8ecef;--mute:#95a0a9;--line:#2d353b;--acc:#7da2ff;--accink:#0e1a38;--warn:#ff8b7d;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.4 Barlow,system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+.wrap{max-width:560px;margin:0 auto;padding:12px 14px 40px}
+h1,h2{font-family:"Barlow Condensed","Arial Narrow",sans-serif;margin:0;letter-spacing:.2px}
+h1{font-size:30px;font-weight:700}
+h2{font-size:24px;font-weight:700}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+input{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0;width:100%}
+input:focus-visible,button:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input[type=date]{width:auto;font-weight:600}
+nav{display:flex;gap:8px;overflow-x:auto;padding:2px 0 10px;margin:0 -14px;padding-left:14px;padding-right:14px;scrollbar-width:none}
+nav::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:8px 15px;font:600 15px Barlow,sans-serif}
+.chip[aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:var(--accink)}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}.tile{display:flex;flex-direction:column;justify-content:space-between;gap:14px;min-height:96px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--ink);font:700 26px "Barlow Condensed",sans-serif}.tile.wide{grid-column:1/-1;min-height:80px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.row{display:flex;gap:8px;align-items:center}
+.btn{border:0;border-radius:10px;background:var(--acc);color:var(--accink);padding:11px 16px;font:600 16px Barlow,sans-serif;flex:none}
+.btn.ghost{background:transparent;color:var(--mute);border:1.5px solid var(--line)}
+.btn.sm{padding:6px 10px;font-size:14px}
+.del{background:none;border:0;color:var(--warn);font:600 14px Barlow,sans-serif;padding:6px}
+.mute{color:var(--mute);font-size:14px}
+.ex{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:13px 14px;margin-top:8px;color:var(--ink);font:600 17px Barlow,sans-serif}
+.ex small{display:block;color:var(--mute);font-weight:500;font-size:13px;margin-top:2px}
+.set{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.set:last-child{border-bottom:0}
+.set b{font-weight:600}
+.seg{display:flex;gap:6px;margin:10px 0}
+.seg button{flex:1;border:1.5px solid var(--line);background:transparent;color:var(--ink);border-radius:9px;padding:8px 4px;font:600 14px Barlow,sans-serif}
+.seg button[aria-pressed=true]{border-color:var(--acc);color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent)}
+svg{width:100%;height:auto;display:block}
+.ax{stroke:var(--line);stroke-width:1}
+.tx{fill:var(--mute);font:500 10px Barlow,sans-serif}
+.vl{fill:var(--ink);font:600 10px Barlow,sans-serif}
+.ln{fill:none;stroke:var(--acc);stroke-width:2.5;stroke-linejoin:round}
+.dot{fill:var(--acc)}
+.empty{color:var(--mute);margin:8px 0}
+.stats{display:flex;gap:16px;margin-top:6px}
+.stats b{font:700 22px "Barlow Condensed",sans-serif;display:block}
+.back{background:none;border:0;color:var(--acc);font:600 16px Barlow,sans-serif;padding:6px 0}
+textarea{width:100%;height:90px;font:12px monospace;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:8px}
+details{margin-top:24px}summary{color:var(--mute)}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<script>
+const KEY='gymlog.v1';
+const CATS=[['chest','Chest'],['shoulders','Shoulders'],['triceps','Triceps'],['biceps','Biceps'],['abs','Abs'],['legs','Legs'],['bw','Bodyweight']];
+const METRICS=[['work','Working weight'],['one','Est. max 1 rep'],['vol','Total lifted']];
+let D=load();
+function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.ex&&x.sets&&x.bw)return x}catch(e){}return{ex:[],sets:[],bw:[]}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
+const today=()=>new Date().toLocaleDateString('sv');
+let S={cat:null,ex:null,date:today(),metric:'work'};
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=v=>String(+(+v).toFixed(1));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const dlabel=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'});
+const dshort=d=>new Date(d+'T00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+
+function series(exId,metric){
+  const by={};
+  D.sets.filter(s=>s.ex===exId).forEach(s=>{if(!by[s.date])by[s.date]=[s]});
+  return Object.keys(by).sort().map(d=>{
+    const a=by[d];let v;
+    if(metric==='work')v=Math.max(...a.map(s=>s.w));
+    else if(metric==='one')v=Math.max(...a.map(s=>s.r===1?s.w:s.w*(1+s.r/30)));
+    else v=a.reduce((t,s)=>t+s.w*s.r,0);
+    return{d,v}});
+}
+function chart(pts){
+  if(!pts.length)return'<p class="empty">Nothing to chart yet. Log an entry to see progress.</p>';
+  const W=340,H=190,l=40,r=14,t=20,b=26;
+  let lo=Math.min(...pts.map(p=>p.v)),hi=Math.max(...pts.map(p=>p.v));
+  if(lo===hi){lo-=1;hi+=1}
+  const pad=(hi-lo)*.15;lo=Math.max(0,lo-pad);hi+=pad;
+  const ts=pts.map(p=>Date.parse(p.d)),t0=ts[0],t1=ts[ts.length-1];
+  const X=i=>pts.length===1?l+(W-l-r)/2:l+(ts[i]-t0)/(t1-t0)*(W-l-r);
+  const Y=v=>t+(hi-v)/(hi-lo)*(H-t-b);
+  let g='';
+  [lo,(lo+hi)/2,hi].forEach(v=>{g+=`<line class="ax" x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tx" x="${l-5}" y="${Y(v)+3}" text-anchor="end">${fmt(v)}</text>`});
+  const line=pts.map((p,i)=>`${X(i)},${Y(p.v)}`).join(' ');
+  g+=`<polyline class="ln" points="${line}"/>`;
+  pts.forEach((p,i)=>{g+=`<circle class="dot" cx="${X(i)}" cy="${Y(p.v)}" r="3.5"/>`;
+    if(pts.length<=10)g+=`<text class="vl" x="${X(i)}" y="${Y(p.v)-8}" text-anchor="middle">${fmt(p.v)}</text>`});
+  g+=`<text class="tx" x="${l}" y="${H-8}" text-anchor="start">${dshort(pts[0].d)}</text>`;
+  if(pts.length>1)g+=`<text class="tx" x="${W-r}" y="${H-8}" text-anchor="end">${dshort(pts[pts.length-1].d)}</text>`;
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Progress chart">${g}</svg>`;
+}
+function stats(pts,unit){
+  if(!pts.length)return'';
+  const last=pts[pts.length-1].v,best=Math.max(...pts.map(p=>p.v));
+  return`<div class="stats"><div><b>${fmt(last)} ${unit}</b><span class="mute">Latest</span></div><div><b>${fmt(best)} ${unit}</b><span class="mute">Best</span></div></div>`;
+}
+
+function render(){
+  const nav=CATS.map(([k,n])=>`<button class="chip" aria-pressed="${S.cat===k}" data-a="cat" data-v="${k}">${n}</button>`).join('');
+  let body=!S.cat?home():S.cat==='bw'?bwView():S.ex?detail():list();
+  $('#app').innerHTML=`<header><h1>Gym Log</h1><input type="date" id="date" value="${S.date}" aria-label="Date to log"></header>${body}${S.cat?'':backup()}`;
+}
+function home(){
+  const tiles=CATS.map(([k,n])=>{let s;
+    if(k==='bw'){const l=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).pop();s=l?`Latest: ${fmt(l.w)} kg`:'No weight logged yet'}
+    else{const c=D.ex.filter(e=>e.cat===k).length;s=c+(c===1?' exercise':' exercises')}
+    return`<button class="tile${k==='bw'?' wide':''}" data-a="cat" data-v="${k}">${n}<span class="mute">${s}</span></button>`}).join('');
+  return`<div class="tiles">${tiles}</div>`;
+}
+function list(){
+  const exs=D.ex.filter(e=>e.cat===S.cat);
+  const rows=exs.map(e=>{
+    const ss=D.sets.filter(s=>s.ex===e.id).sort((a,b)=>a.date<b.date?1:a.date>b.date?-1:0);
+    const sub=ss.length?`Last: ${dlabel(ss[0].date)} · ${fmt(ss[0].w)} kg × ${ss[0].r}`:'No sets yet';
+    return`<button class="ex" data-a="open" data-v="${e.id}"><span>${esc(e.name)}<small>${sub}</small></span><span aria-hidden="true">›</span></button>`}).join('');
+  const label=CATS.find(c=>c[0]===S.cat)[1];
+  return`<button class="back" data-a="up">‹ All categories</button><h2>${label}</h2>${rows||'<p class="empty">No exercises yet. Add your first one below.</p>'}
+  <div class="card"><div class="row"><input id="newex" placeholder="Exercise name, e.g. Bench press" maxlength="60"><button class="btn" data-a="addex">Add</button></div></div>`;
+}
+function detail(){
+  const e=D.ex.find(x=>x.id===S.ex);if(!e){S.ex=null;return list()}
+  const day=D.sets.filter(s=>s.ex===e.id&&s.date===S.date);
+  const all=D.sets.filter(s=>s.ex===e.id);
+  const ref=day[0]||all[all.length-1]||{w:'',r:''};
+  const dayRows=day.map((s,i)=>`<div class="set"><span><b>Logged</b> · ${fmt(s.w)} kg × ${s.r}${s.note?`<br><span class="mute">${esc(s.note)}</span>`:''}</span><button class="del" data-a="delset" data-v="${s.id}">Delete</button></div>`).join('');
+  const vol=day.reduce((t,s)=>t+s.w*s.r,0);
+  const pts=series(e.id,S.metric);
+  const unit='kg';
+  const dates=[...new Set(all.map(s=>s.date))].sort().reverse();
+  const hist=dates.map(d=>{const a=all.filter(s=>s.date===d);
+    return`<div class="set"><span><b>${dlabel(d)}</b><br><span class="mute">${a.map(s=>fmt(s.w)+'×'+s.r+(s.note?' – '+esc(s.note):'')).join('; ')}</span></span><button class="btn ghost sm" data-a="goto" data-v="${d}">Edit day</button></div>`}).join('');
+  return`<button class="back" data-a="back">‹ Back</button>
+  <h2>${esc(e.name)}</h2>
+  <div class="card"><b>${dlabel(S.date)}</b><span class="mute"> · first set of the day</span>
+    <div style="margin-top:6px">${dayRows||'<p class="empty">Nothing logged for this day yet.</p>'}</div>
+    <div class="row" style="margin-top:10px"><input id="w" type="number" inputmode="decimal" step="0.25" min="0" placeholder="Weight (kg)" value="${ref.w}"><input id="r" type="number" inputmode="numeric" step="1" min="1" placeholder="Reps" value="${ref.r}"></div><input id="note" maxlength="300" placeholder="Note (optional)" value="${esc(day[0]&&day[0].note||'')}" style="margin-top:8px"><button class="btn" style="width:100%;margin-top:8px" data-a="addset">${day.length?'Update':'Save'}</button></div>
+  <div class="card"><h2>Progress</h2>
+    <div class="seg">${METRICS.map(([k,n])=>`<button aria-pressed="${S.metric===k}" data-a="metric" data-v="${k}">${n}</button>`).join('')}</div>
+    ${chart(pts)}${stats(pts,unit)}
+    ${S.metric==='one'?'<p class="mute">Estimated from your sets (Epley formula), exact when you log a single rep.</p>':''}
+    ${S.metric==='vol'?'<p class="mute">Weight × reps of your first set each day.</p>':''}
+    ${S.metric==='work'?'<p class="mute">Weight of your first set each day.</p>':''}</div>
+  ${hist?`<div class="card"><h2>History</h2>${hist}</div>`:''}
+  <div style="text-align:center;margin-top:18px"><button class="del" data-a="delex" data-v="${e.id}">${S.sure===e.id?'Tap again to delete this exercise and its history':'Delete this exercise'}</div>`;
+}
+function bwView(){
+  const pts=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).map(p=>({d:p.d,v:p.w,note:p.note}));
+  const cur=D.bw.find(p=>p.d===S.date);
+  const ref=cur?cur.w:(pts.length?pts[pts.length-1].v:'');
+  const hist=pts.slice().reverse().map(p=>`<div class="set"><span><b>${dlabel(p.d)}</b> · ${fmt(p.v)} kg${p.note?`<br><span class="mute">${esc(p.note)}</span>`:''}</span><span><button class="btn ghost sm" data-a="goto" data-v="${p.d}">Edit</button> <button class="del" data-a="delbw" data-v="${p.d}">Delete</button></span></div>`).join('');
+  return`<button class="back" data-a="up">‹ All categories</button><h2>Bodyweight</h2>
+  <div class="card"><b>${dlabel(S.date)}</b>${cur?`<span class="mute"> · logged ${fmt(cur.w)} kg</span>`:''}
+    <div class="row" style="margin-top:10px"><input id="bw" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Weight (kg)" value="${ref}"></div><input id="note" maxlength="300" placeholder="Note (optional)" value="${esc(cur&&cur.note||'')}" style="margin-top:8px"><button class="btn" style="width:100%;margin-top:8px" data-a="savebw">${cur?'Update':'Save'}</button></div>
+  <div class="card"><h2>Progress</h2>${chart(pts)}${stats(pts,'kg')}</div>
+  ${hist?`<div class="card"><h2>History</h2>${hist}</div>`:''}`;
+}
+function backup(){
+  return`<details><summary>Backup and restore</summary><p class="mute">Copy this text somewhere safe. To restore, paste it back and tap Restore.</p>
+  <textarea id="bk" aria-label="Backup data">${esc(JSON.stringify(D))}</textarea>
+  <div class="row" style="margin-top:8px"><button class="btn ghost sm" data-a="restore">Restore from text</button></div></details>`;
+}
+
+function toast(t){const d=document.createElement('div');d.textContent=t;d.setAttribute('role','status');d.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:9;max-width:90%;font-weight:600';document.body.appendChild(d);setTimeout(()=>d.remove(),2800)}
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const a=b.dataset.a,v=b.dataset.v;
+  if(a!=='delex'&&a!=='restore')S.sure=null;
+  if(a==='cat'){S.cat=v;S.ex=null}
+  else if(a==='open'){S.ex=v}
+  else if(a==='back'){S.ex=null}
+  else if(a==='up'){S.cat=null;S.ex=null}
+  else if(a==='metric'){S.metric=v}
+  else if(a==='goto'){S.date=v;window.scrollTo(0,0)}
+  else if(a==='addex'){const n=$('#newex').value.trim();if(!n)return;D.ex.push({id:uid(),cat:S.cat,name:n});save()}
+  else if(a==='addset'){const w=parseFloat($('#w').value),r=parseInt($('#r').value,10);
+    if(isNaN(w)||w<0||isNaN(r)||r<1){toast('Enter a weight (0 or more) and reps (1 or more).');return}
+    D.sets=D.sets.filter(s=>!(s.ex===S.ex&&s.date===S.date));D.sets.push({id:uid(),ex:S.ex,date:S.date,w,r,note:$('#note').value.trim()});save()}
+  else if(a==='delset'){D.sets=D.sets.filter(s=>s.id!==v);save()}
+  else if(a==='delex'){if(S.sure!==v){S.sure=v;render();return}S.sure=null;D.ex=D.ex.filter(x=>x.id!==v);D.sets=D.sets.filter(s=>s.ex!==v);S.ex=null;save()}
+  else if(a==='savebw'){const w=parseFloat($('#bw').value);if(isNaN(w)||w<=0){toast('Enter your weight in kg.');return}
+    D.bw=D.bw.filter(p=>p.d!==S.date);D.bw.push({d:S.date,w,note:$('#note').value.trim()});save()}
+  else if(a==='delbw'){D.bw=D.bw.filter(p=>p.d!==v);save()}
+  else if(a==='restore'){try{const x=JSON.parse($('#bk').value);if(!(x&&x.ex&&x.sets&&x.bw))throw 0;if(S.sure!=='restore'){S.sure='restore';toast('Tap Restore again to replace all current data');return}S.sure=null;D=x;save()}catch(err){toast('That text is not a valid backup.');return}}
+  render();
+});
+document.addEventListener('change',e=>{if(e.target.id==='date'&&e.target.value){S.date=e.target.value;render()}});
+render();
+</script>
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}</script>
+</body>
+</html>
