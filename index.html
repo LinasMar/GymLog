@@ -61,6 +61,12 @@ details{margin-top:24px}summary{color:var(--mute)}
 .ptinfo{min-height:3.4em;margin-top:6px}
 .ptinfo b{color:var(--ink);font-weight:600;font-size:16px}
 .zoom{margin-top:6px}
+:root{--ok:#1f7a45;--amb:#b45f06}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--ok:#5fd38d;--amb:#ffb454}}
+:root[data-theme="dark"]{--ok:#5fd38d;--amb:#ffb454}
+.bk{font-weight:600;font-size:15px;margin:2px 2px 10px}.bk.g{color:var(--ok)}.bk.n{color:var(--mute)}.bk.o{color:var(--amb)}.bk.r{color:var(--warn)}
+select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 8px;width:100%;min-width:0}
+.prrow{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}.prrow:last-child{border-bottom:0}.prrow b{font-weight:600;font-size:17px}
 .ex{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .ex.drag{position:relative;z-index:5;border-color:var(--acc);box-shadow:0 6px 18px rgba(0,0,0,.28)}
 </style>
@@ -72,13 +78,13 @@ details{margin-top:24px}summary{color:var(--mute)}
 <script>
 const KEY='gymlog.v1';
 const CATS=[['chest','Chest'],['shoulders','Shoulders'],['triceps','Triceps'],['biceps','Biceps'],['abs','Abs'],['legs','Legs'],['bw','Bodyweight']];
-const METRICS=[['work','Working weight'],['one','Est. max 1 rep'],['vol','Total lifted']];
+const METRICS=[['work','Working weight'],['one','Est. max 1 rep'],['vol','Total lifted'],['bwr','× Bodyweight']];
 let D=load();
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.ex&&x.sets&&x.bw)return x}catch(e){}return{ex:[],sets:[],bw:[]}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(D))}catch(e){}}
 const today=()=>new Date().toLocaleDateString('sv');
 let CUR=[],SUP=0;
-let S={cat:null,zoom:1,ex:null,date:today(),metric:'work'};
+let S={cat:null,zoom:1,rg:0,ex:null,date:today(),metric:'work'};
 const $=s=>document.querySelector(s);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const fmt=v=>String(+(+v).toFixed(1));
@@ -93,11 +99,12 @@ function series(exId,metric){
     const a=by[d];let v;
     if(metric==='work')v=Math.max(...a.map(s=>s.w));
     else if(metric==='one')v=Math.max(...a.map(s=>s.r===1?s.w:s.w*(1+s.r/30)));
+    else if(metric==='bwr'){const q=bwAt(d);if(!q)return null;v=a[0].w/q}
     else v=a.reduce((t,s)=>t+s.w*s.r,0);
-    return{d,v,lab:fmt(a[0].w)+' kg × '+a[0].r,note:a[0].note||''}});
+    return{d,v,lab:fmt(a[0].w)+' kg × '+a[0].r,note:a[0].note||''}}).filter(Boolean);
 }
 function chart(pts){
-  if(!pts.length)return'<p class="empty">Nothing to chart yet. Log an entry to see progress.</p>';
+  if(!pts.length)return rbar()+'<p class="empty">Nothing to chart in this range.</p>';
   const W=Math.round(340*S.zoom),H=190,l=40,r=14,t=20,b=26;CUR=pts;
   let lo=Math.min(...pts.map(p=>p.v)),hi=Math.max(...pts.map(p=>p.v));
   if(lo===hi){lo-=1;hi+=1}
@@ -106,21 +113,42 @@ function chart(pts){
   const X=i=>pts.length===1?l+(W-l-r)/2:l+(ts[i]-t0)/(t1-t0)*(W-l-r);
   const Y=v=>t+(hi-v)/(hi-lo)*(H-t-b);
   let g='';
-  [lo,(lo+hi)/2,hi].forEach(v=>{g+=`<line class="ax" x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tx" x="${l-5}" y="${Y(v)+3}" text-anchor="end">${fmt(v)}</text>`});
+  [lo,(lo+hi)/2,hi].forEach(v=>{g+=`<line class="ax" x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tx" x="${l-5}" y="${Y(v)+3}" text-anchor="end">${fm(v)}</text>`});
   const line=pts.map((p,i)=>`${X(i)},${Y(p.v)}`).join(' ');
   g+=`<polyline class="ln" points="${line}"/>`;
   pts.forEach((p,i)=>{g+=`<circle class="dot" id="pt${i}" cx="${X(i)}" cy="${Y(p.v)}" r="3.5"/><circle data-a="pt" data-v="${i}" cx="${X(i)}" cy="${Y(p.v)}" r="13" fill="transparent"/>`;
-    if(pts.length<=10)g+=`<text class="vl" x="${X(i)}" y="${Y(p.v)-8}" text-anchor="middle">${fmt(p.v)}</text>`});
+    if(pts.length<=10)g+=`<text class="vl" x="${X(i)}" y="${Y(p.v)-8}" text-anchor="middle">${fm(p.v)}</text>`});
   g+=`<text class="tx" x="${l}" y="${H-8}" text-anchor="start">${dshort(pts[0].d)}</text>`;
   if(pts.length>1)g+=`<text class="tx" x="${W-r}" y="${H-8}" text-anchor="end">${dshort(pts[pts.length-1].d)}</text>`;
-  return`<div class="cwrap" id="cwrap"><svg viewBox="0 0 ${W} ${H}" style="width:${S.zoom*100}%" role="img" aria-label="Progress chart">${g}</svg></div><div class="row zoom"><button class="btn ghost sm" data-a="zoom" data-v="-1">− Zoom out</button><button class="btn ghost sm" data-a="zoom" data-v="1">+ Zoom in</button></div><div id="ptinfo" class="ptinfo mute">Tap a point to see that day.</div>`;
+  return rbar()+`<div class="cwrap" id="cwrap"><svg viewBox="0 0 ${W} ${H}" style="width:${S.zoom*100}%" role="img" aria-label="Progress chart">${g}</svg></div><div class="row zoom"><button class="btn ghost sm" data-a="zoom" data-v="-1">− Zoom out</button><button class="btn ghost sm" data-a="zoom" data-v="1">+ Zoom in</button></div><div id="ptinfo" class="ptinfo mute">Tap a point to see that day.</div>`;
 }
 function stats(pts,unit){
   if(!pts.length)return'';
   const last=pts[pts.length-1].v,best=Math.max(...pts.map(p=>p.v));
-  return`<div class="stats"><div><b>${fmt(last)} ${unit}</b><span class="mute">Latest</span></div><div><b>${fmt(best)} ${unit}</b><span class="mute">Best</span></div></div>`;
+  return`<div class="stats"><div><b>${fm(last)} ${unit}</b><span class="mute">Latest</span></div><div><b>${fm(best)} ${unit}</b><span class="mute">Best</span></div></div>`;
 }
 
+const KB='gymlog.lastbackup';
+const RNG=[['1M',1],['3M',3],['6M',6],['1Y',12],['All',0]];
+function rbar(){return'<div class="seg">'+RNG.map(([n,m])=>`<button aria-pressed="${S.rg===m}" data-a="rng" data-v="${m}">${n}</button>`).join('')+'</div>'}
+function inRange(p){if(!S.rg)return p;const d=new Date();d.setMonth(d.getMonth()-S.rg);const c=d.toLocaleDateString('sv');return p.filter(x=>x.d>=c)}
+const fm=v=>String(+(+v).toFixed(S.metric==='bwr'&&S.cat!=='bw'?2:1));
+function bwAt(d){const a=D.bw.slice().sort((x,y)=>x.d<y.d?-1:1);if(!a.length)return 0;let r=a[0];for(const p of a){if(p.d<=d)r=p;else break}return r.w}
+function hpush(){try{history.pushState({cat:S.cat,ex:S.ex},'')}catch(e){}}
+function saveFile(){const u=URL.createObjectURL(new Blob([JSON.stringify(D)],{type:'application/json'}));const a=document.createElement('a');a.href=u;a.download='gymlog-'+today()+'.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000);try{localStorage.setItem(KB,today())}catch(e){}toast('Backup file saved to Downloads')}
+function bkStatus(){let d=null;try{d=localStorage.getItem(KB)}catch(e){}
+  if(!d)return'<div class="bk r">Last backup: never</div>';
+  const n=Math.round((Date.parse(today())-Date.parse(d))/864e5);const c=n<=0?'g':n<=7?'n':n<=30?'o':'r';
+  return`<div class="bk ${c}">Last backup: ${n<=0?'today':n===1?'yesterday':n+' days ago'} (${dlabel(d)})</div>`}
+function prCard(){D.pr=D.pr||['','',''];
+  const opts=sel=>CATS.filter(c=>c[0]!=='bw').map(([k,n])=>{const l=D.ex.filter(e=>e.cat===k);return l.length?`<optgroup label="${n}">${l.map(e=>`<option value="${e.id}"${e.id===sel?' selected':''}>${esc(e.name)}</option>`).join('')}</optgroup>`:''}).join('');
+  const rows=[0,1,2].map(i=>{const id=D.pr[i];let info='<span class="mute">Pick an exercise to track</span>';
+    if(id){const ss=D.sets.filter(s=>s.ex===id);
+      if(ss.length){const pool=ss.filter(s=>s.r<=5),use=pool.length?pool:ss;let b=null,bv=0;use.forEach(s=>{const v=s.r===1?s.w:s.w*(1+s.r/30);if(v>bv){bv=v;b=s}});const q=bwAt(b.date);
+        info=`<b>${fmt(bv)} kg</b>${b.r>1?'<span class="mute"> est.</span>':''}${q?`<span class="mute"> · ×${(bv/q).toFixed(2)} BW</span>`:''}<br><span class="mute">${dlabel(b.date)} · ${fmt(b.w)} kg × ${b.r}</span>`}
+      else info='<span class="mute">No sets logged yet</span>'}
+    return`<div class="prrow"><select data-pr="${i}" aria-label="PR exercise ${i+1}"><option value="">Choose exercise…</option>${opts(id)}</select><div>${info}</div></div>`}).join('');
+  return`<div class="card"><h2>1 rep PRs</h2><p class="mute" style="margin:2px 0 4px">Heaviest single. If you have none logged, an estimate from sets of up to 5 reps.</p>${rows}</div>`}
 function render(){
   const nav=CATS.map(([k,n])=>`<button class="chip" aria-pressed="${S.cat===k}" data-a="cat" data-v="${k}">${n}</button>`).join('');
   let body=!S.cat?home():S.cat==='bw'?bwView():S.ex?detail():list();
@@ -132,7 +160,7 @@ function home(){
     if(k==='bw'){const l=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).pop();s=l?`Latest: ${fmt(l.w)} kg`:'No weight logged yet'}
     else{const c=D.ex.filter(e=>e.cat===k).length;s=c+(c===1?' exercise':' exercises')}
     return`<button class="tile${k==='bw'?' wide':''}" data-a="cat" data-v="${k}">${n}<span class="mute">${s}</span></button>`}).join('');
-  return`<div class="tiles">${tiles}</div>`;
+  return bkStatus()+`<div class="tiles">${tiles}</div>`+prCard();
 }
 function list(){
   const exs=D.ex.filter(e=>e.cat===S.cat);
@@ -148,16 +176,16 @@ function detail(){
   const e=D.ex.find(x=>x.id===S.ex);if(!e){S.ex=null;return list()}
   const day=D.sets.filter(s=>s.ex===e.id&&s.date===S.date);
   const all=D.sets.filter(s=>s.ex===e.id);
-  const ref=day[0]||all[all.length-1]||{w:'',r:''};
+  const ref=day[0]||{w:'',r:''};
   const dayRows=day.map((s,i)=>`<div class="set"><span><b>${fmt(s.w)} kg × ${s.r}</b>${s.note?`<br><span class="mute">${esc(s.note)}</span>`:''}</span><button class="del" data-a="delset" data-v="${s.id}">Delete</button></div>`).join('');
   const vol=day.reduce((t,s)=>t+s.w*s.r,0);
-  const pts=series(e.id,S.metric);
-  const unit='kg';
+  const pts=inRange(series(e.id,S.metric));
+  const unit=S.metric==='bwr'?'× BW':'kg';
   const dates=[...new Set(all.map(s=>s.date))].sort().reverse();
   const hist=dates.map(d=>{const a=all.filter(s=>s.date===d);
     return`<div class="set"><span><b>${dlabel(d)}</b><br><b>${fmt(a[0].w)} kg × ${a[0].r}</b>${a[0].note?`<br><span class="mute">${esc(a[0].note)}</span>`:''}</span><button class="btn ghost sm" data-a="goto" data-v="${d}">Edit day</button></div>`}).join('');
   return`<button class="back" data-a="back">‹ Back</button>
-  <h2>${esc(e.name)}</h2>
+  ${S.ren===e.id?`<div class="row"><input id="rn" maxlength="60" value="${esc(e.name)}"><button class="btn sm" data-a="saveren">Save</button><button class="btn ghost sm" data-a="cancelren">Cancel</button></div>`:`<div class="row" style="justify-content:space-between"><h2>${esc(e.name)}</h2><button class="btn ghost sm" data-a="rename">Rename</button></div>`}
   <div class="card"><b>${dlabel(S.date)}</b><span class="mute"> · first set of the day</span>
     <div style="margin-top:6px">${dayRows||'<p class="empty">Nothing logged for this day yet.</p>'}</div>
     <div class="row" style="margin-top:10px"><input id="w" type="number" inputmode="decimal" step="0.25" min="0" placeholder="Weight (kg)" value="${ref.w}"><input id="r" type="number" inputmode="numeric" step="1" min="1" placeholder="Reps" value="${ref.r}"></div><input id="note" maxlength="300" placeholder="Note (optional)" value="${esc(day[0]&&day[0].note||'')}" style="margin-top:8px"><button class="btn" style="width:100%;margin-top:8px" data-a="addset">${day.length?'Update':'Save'}</button></div>
@@ -166,15 +194,16 @@ function detail(){
     ${chart(pts)}${stats(pts,unit)}
     ${S.metric==='one'?'<p class="mute">Estimated from your sets (Epley formula), exact when you log a single rep.</p>':''}
     ${S.metric==='vol'?'<p class="mute">Weight × reps of your first set each day.</p>':''}
-    ${S.metric==='work'?'<p class="mute">Weight of your first set each day.</p>':''}</div>
+    ${S.metric==='work'?'<p class="mute">Weight of your first set each day.</p>':''}
+    ${S.metric==='bwr'?'<p class="mute">Your logged weight divided by your bodyweight on that day (needs bodyweight entries).</p>':''}</div>
   ${hist?`<div class="card"><h2>History</h2>${hist}</div>`:''}
   <div style="text-align:center;margin-top:18px"><button class="del" data-a="delex" data-v="${e.id}">${S.sure===e.id?'Tap again to delete this exercise and its history':'Delete this exercise'}</button></div>`;
 }
 function bwView(){
-  const pts=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).map(p=>({d:p.d,v:p.w,note:p.note,lab:fmt(p.w)+' kg'}));
+  const all=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).map(p=>({d:p.d,v:p.w,note:p.note,lab:fmt(p.w)+' kg'}));
   const cur=D.bw.find(p=>p.d===S.date);
-  const ref=cur?cur.w:(pts.length?pts[pts.length-1].v:'');
-  const hist=pts.slice().reverse().map(p=>`<div class="set"><span><b>${dlabel(p.d)}</b><br><b>${fmt(p.v)} kg</b>${p.note?`<br><span class="mute">${esc(p.note)}</span>`:''}</span><span><button class="btn ghost sm" data-a="goto" data-v="${p.d}">Edit</button> <button class="del" data-a="delbw" data-v="${p.d}">Delete</button></span></div>`).join('');
+  const ref=cur?cur.w:'';const pts=inRange(all);
+  const hist=all.slice().reverse().map(p=>`<div class="set"><span><b>${dlabel(p.d)}</b><br><b>${fmt(p.v)} kg</b>${p.note?`<br><span class="mute">${esc(p.note)}</span>`:''}</span><span><button class="btn ghost sm" data-a="goto" data-v="${p.d}">Edit</button> <button class="del" data-a="delbw" data-v="${p.d}">Delete</button></span></div>`).join('');
   return`<button class="back" data-a="up">‹ All categories</button><h2>Bodyweight</h2>
   <div class="card"><b>${dlabel(S.date)}</b>${cur?`<span class="mute"> · logged ${fmt(cur.w)} kg</span>`:''}
     <div class="row" style="margin-top:10px"><input id="bw" type="number" inputmode="decimal" step="0.1" min="0" placeholder="Weight (kg)" value="${ref}"></div><input id="note" maxlength="300" placeholder="Note (optional)" value="${esc(cur&&cur.note||'')}" style="margin-top:8px"><button class="btn" style="width:100%;margin-top:8px" data-a="savebw">${cur?'Update':'Save'}</button></div>
@@ -182,7 +211,7 @@ function bwView(){
   ${hist?`<div class="card"><h2>History</h2>${hist}</div>`:''}`;
 }
 function backup(){
-  return`<details><summary>Backup and restore</summary><p class="mute">Copy this text somewhere safe. To restore, paste it back and tap Restore.</p>
+  return`<div class="card"><h2>Backup</h2><p class="mute" style="margin:2px 0 10px">Saves a file to your Downloads folder. Keep a copy somewhere safe, such as Drive, email or your PC.</p><div class="row" style="flex-wrap:wrap"><button class="btn" data-a="savefile">Save backup file</button><button class="btn ghost" data-a="openfile">Open backup file</button></div><input type="file" id="bkfile" accept=".json,.txt,application/json,text/plain" hidden></div><details><summary>Backup and restore</summary><p class="mute">Copy this text somewhere safe. To restore, paste it back and tap Restore.</p>
   <textarea id="bk" aria-label="Backup data">${esc(JSON.stringify(D))}</textarea>
   <div class="row" style="margin-top:8px;flex-wrap:wrap"><button class="btn sm" data-a="merge">Add from text</button><button class="btn ghost sm" data-a="restore">Restore from text</button></div><p class="mute">Add from text merges pasted entries into your current data and skips days already logged. Restore replaces everything.</p></details>`;
 }
@@ -193,10 +222,11 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('[data-a]');if(!b)return;
   const a=b.dataset.a,v=b.dataset.v;
   if(a!=='delex'&&a!=='restore')S.sure=null;
-  if(a==='cat'){S.cat=v;S.ex=null;S.zoom=1}
-  else if(a==='open'){S.ex=v;S.zoom=1}
-  else if(a==='back'){S.ex=null}
-  else if(a==='up'){S.cat=null;S.ex=null}
+  if(a!=='rename')S.ren=null;
+  if(a==='cat'){S.cat=v;S.ex=null;S.zoom=1;hpush()}
+  else if(a==='open'){S.ex=v;S.zoom=1;hpush()}
+  else if(a==='back'){S.ex=null;try{history.back()}catch(e){}}
+  else if(a==='up'){S.cat=null;S.ex=null;try{history.back()}catch(e){}}
   else if(a==='zoom'){const L=[1,1.5,2,3,4,6,8,12];const c=$('#cwrap');const f=c?(c.scrollLeft+c.clientWidth/2)/c.scrollWidth:1;let i=L.indexOf(S.zoom);if(i<0)i=0;S.zoom=L[Math.max(0,Math.min(L.length-1,i+(+v)))];render();const n=$('#cwrap');if(n)n.scrollLeft=f*n.scrollWidth-n.clientWidth/2;return}
   else if(a==='pt'){const p=CUR[+v];if(!p)return;document.querySelectorAll('.dot.sel').forEach(x=>x.classList.remove('sel'));$('#pt'+v).classList.add('sel');$('#ptinfo').innerHTML='<b>'+dlabel(p.d)+'</b><br><b>'+p.lab+'</b>'+(p.note?'<br>'+esc(p.note):'');return}
   else if(a==='merge'){try{const x=JSON.parse($('#bk').value);if(!(x&&x.ex&&x.sets&&x.bw))throw 0;const key=q=>q.cat+'|'+q.name.trim().toLowerCase();const mp={};
@@ -205,6 +235,11 @@ document.addEventListener('click',e=>{
     x.bw.forEach(p=>{if(D.bw.some(y=>y.d===p.d))k++;else{D.bw.push(p);n++}});
     save();toast('Added '+n+' entries'+(k?', skipped '+k+' already there':''))}catch(err){toast('That text is not a valid backup.');return}}
   else if(a==='metric'){S.metric=v}
+  else if(a==='rng'){S.rg=+v;S.zoom=1}
+  else if(a==='rename'){S.ren=S.ex}
+  else if(a==='saveren'){const n=$('#rn').value.trim();if(!n)return;const x=D.ex.find(q=>q.id===S.ex);if(x)x.name=n;save()}
+  else if(a==='savefile'){saveFile()}
+  else if(a==='openfile'){$('#bkfile').click();return}
   else if(a==='goto'){S.date=v;window.scrollTo(0,0)}
   else if(a==='addex'){const n=$('#newex').value.trim();if(!n)return;D.ex.push({id:uid(),cat:S.cat,name:n});save()}
   else if(a==='addset'){const w=parseFloat($('#w').value),r=parseInt($('#r').value,10);
@@ -229,7 +264,12 @@ document.addEventListener('touchend',()=>{if(!DR)return;clearTimeout(DR.tm);cons
   const ids=others.map(x=>x.dataset.v);ids.splice(to,0,d.el.dataset.v);
   const mine=D.ex.filter(x=>x.cat===S.cat),rest=D.ex.filter(x=>x.cat!==S.cat);
   D.ex=rest.concat(ids.map(i=>mine.find(x=>x.id===i)).filter(Boolean));save();render()},{passive:true});
-document.addEventListener('change',e=>{if(e.target.id==='date'&&e.target.value){S.date=e.target.value;render()}});
+document.addEventListener('change',e=>{
+  if(e.target.id==='bkfile'){const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{$('#bk').value=rd.result;document.querySelector('[data-a=merge]').click()};rd.readAsText(f);return}
+  if(e.target.dataset.pr!==undefined){D.pr=D.pr||['','',''];D.pr[+e.target.dataset.pr]=e.target.value;save();render();return}
+  if(e.target.id==='date'&&e.target.value){S.date=e.target.value;render()}});
+try{history.replaceState({cat:null,ex:null},'')}catch(e){}
+window.addEventListener('popstate',e=>{const s=e.state||{cat:null,ex:null};S.cat=s.cat;S.ex=s.ex;S.zoom=1;S.ren=null;render()});
 render();
 </script>
 <script>if('serviceWorker' in navigator){navigator.serviceWorker.register('sw.js').catch(function(){})}</script>
