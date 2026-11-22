@@ -77,7 +77,7 @@ select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid v
 <div class="wrap" id="app"></div>
 <script>
 const KEY='gymlog.v1';
-const CATS=[['chest','Chest'],['shoulders','Shoulders'],['triceps','Triceps'],['biceps','Biceps'],['abs','Abs'],['legs','Legs'],['bw','Bodyweight']];
+const CATS=[['chest','Chest'],['back','Back'],['shoulders','Shoulders'],['triceps','Triceps'],['biceps','Biceps'],['abs','Abs'],['legs','Legs'],['bw','Bodyweight']];
 const METRICS=[['work','Working weight'],['one','Est. max 1 rep'],['vol','Total lifted'],['bwr','× Bodyweight']];
 let D=load();
 function load(){try{const x=JSON.parse(localStorage.getItem(KEY));if(x&&x.ex&&x.sets&&x.bw)return x}catch(e){}return{ex:[],sets:[],bw:[]}}
@@ -159,7 +159,7 @@ function home(){
   const tiles=CATS.map(([k,n])=>{let s;
     if(k==='bw'){const l=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).pop();s=l?`Latest: ${fmt(l.w)} kg`:'No weight logged yet'}
     else{const c=D.ex.filter(e=>e.cat===k).length;s=c+(c===1?' exercise':' exercises')}
-    return`<button class="tile${k==='bw'?' wide':''}" data-a="cat" data-v="${k}">${n}<span class="mute">${s}</span></button>`}).join('');
+    return`<button class="tile" data-a="cat" data-v="${k}">${n}<span class="mute">${s}</span></button>`}).join('');
   return bkStatus()+`<div class="tiles">${tiles}</div>`+prCard();
 }
 function list(){
