@@ -61,9 +61,9 @@ details{margin-top:24px}summary{color:var(--mute)}
 .ptinfo{min-height:3.4em;margin-top:6px}
 .ptinfo b{color:var(--ink);font-weight:600;font-size:16px}
 .zoom{margin-top:6px}
-:root{--ok:#1f7a45;--amb:#b45f06}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--ok:#5fd38d;--amb:#ffb454}}
-:root[data-theme="dark"]{--ok:#5fd38d;--amb:#ffb454}
+:root{--ok:#1f7a45;--amb:#b45f06;--okink:#fff}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--ok:#5fd38d;--amb:#ffb454;--okink:#0b2a17}}
+:root[data-theme="dark"]{--ok:#5fd38d;--amb:#ffb454;--okink:#0b2a17}
 .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:10px}
 .cal .h{font-size:12px;color:var(--mute);text-align:center;padding:2px 0}
 .cd{aspect-ratio:1;border:1.5px solid transparent;border-radius:10px;background:transparent;color:var(--ink);font:500 15px Barlow,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0}
@@ -77,6 +77,7 @@ details{margin-top:24px}summary{color:var(--mute)}
 .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:10px}.lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .lg .a::before{background:var(--acc)}.lg .b::before{background:var(--ok)}.lg .c::before{background:var(--amb)}
 button:disabled{opacity:.4}
+.tile.go{background:var(--ok);border-color:var(--ok);color:var(--okink)}.tile.go .mute{color:inherit;opacity:.88}.btn.go{background:var(--ok);color:var(--okink)}
 .ex2{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:8px;color:var(--ink);font:600 16px/1.35 Barlow,sans-serif}
 .bk{font-weight:600;font-size:15px;margin:2px 2px 10px}.bk.g{color:var(--ok)}.bk.n{color:var(--mute)}.bk.o{color:var(--amb)}.bk.r{color:var(--warn)}
 select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid var(--line);border-radius:10px;padding:10px 8px;width:100%;min-width:0}
@@ -190,30 +191,39 @@ function calView(){
   <div class="row" style="margin-top:8px"><button class="btn ghost sm" data-a="caltoday">Today</button></div></div>
   <div class="card"><b>${dlabel(S.date)}</b>${tt.length?`<span class="mute"> · ${tt.map(x=>TL[x]).join(' + ')}</span>`:''}${det||'<p class="empty">Nothing logged on this day.</p>'}
   <p class="mute" style="margin:12px 0 0">This date is also the one used when you log or start a workout.</p></div>`}
-const WT=[['push','Push'],['pull','Pull'],['legs','Legs']];
+const WT=[['push','Push'],['pull','Pull'],['legs','Legs']],WC={push:'--acc',pull:'--ok',legs:'--amb'};
 function exOpts(skip){return CATS.filter(c=>c[0]!=='bw').map(([k,n])=>{const l=D.ex.filter(e=>e.cat===k&&!skip.includes(e.id));return l.length?`<optgroup label="${n}">${l.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</optgroup>`:''}).join('')}
 function lastSet(id){const l=D.sets.filter(s=>s.ex===id&&s.date<S.date&&!/reps not recorded/.test(s.note||'')).sort((a,b)=>a.date<b.date?-1:1);return l[l.length-1]}
+function exCard(e,k,tag){
+  const logged=D.sets.find(s=>s.ex===e.id&&s.date===S.date),l=lastSet(e.id),inc=e.inc||2.5;
+  const sg=l?(l.r>=12?{w:+(l.w+inc).toFixed(2),r:8}:{w:l.w,r:l.r+1}):null;
+  const pw=logged?logged.w:sg?sg.w:'',pr=logged?logged.r:sg?sg.r:'';
+  return`<div class="card"><h2>${tag?'<span class="mute" style="font-size:18px">'+tag+'</span> ':''}${esc(e.name)}</h2>
+  <p class="mute" style="margin:4px 0 0">${l?`Last time: ${dlabel(l.date)} · ${fmt(l.w)} kg × ${l.r}`:'No earlier sets for this exercise'}</p>${l&&l.note?`<p class="mute" style="margin:2px 0 0">${esc(l.note)}</p>`:''}
+  <p class="mute" style="margin:4px 0 8px">${logged?'Already logged for this day. Change it below if needed.':sg?(l.r>=12?`Suggested: +${fmt(inc)} kg, reps back to 8`:'Suggested: +1 rep'):''}</p>
+  <div class="row"><input id="w${k}" type="number" inputmode="decimal" step="0.25" min="0" placeholder="Weight (kg)" value="${pw}"><input id="r${k}" type="number" inputmode="numeric" step="1" min="1" placeholder="Reps" value="${pr}"></div>
+  <input id="note${k}" maxlength="300" placeholder="Note (optional)" value="${esc(logged&&logged.note||'')}" style="margin-top:8px">
+  <div class="row" style="margin-top:10px;justify-content:space-between"><span class="mute">Increase weight by</span><span class="row" style="gap:6px"><input data-inc="${e.id}" type="number" inputmode="decimal" step="0.25" min="0" value="${inc}" style="width:84px" aria-label="Weight increase in kg"><span class="mute">kg</span></span></div></div>`}
 function wkView(){
   D.plan=D.plan||{push:[],pull:[],legs:[]};
   const w=S.wk||(S.wk={t:null,i:0,ed:false}),em={};D.ex.forEach(e=>em[e.id]=e);
-  if(!w.t)return`<button class="back" data-a="up">‹ All categories</button><h2>Start workout</h2><p class="mute" style="margin:2px 0 0">Logging for ${dlabel(S.date)}</p>`+WT.map(([k,n])=>{const c=(D.plan[k]||[]).filter(i=>em[i]).length;return`<button class="tile" style="width:100%;margin-top:10px;min-height:80px" data-a="wkpick" data-v="${k}">${n}<span class="mute">${c} exercise${c===1?'':'s'}</span></button>`}).join('');
-  const ids=D.plan[w.t]=(D.plan[w.t]||[]).filter(i=>em[i]);
+  if(!w.t)return`<button class="back" data-a="up">‹ All categories</button><h2>Start workout</h2><p class="mute" style="margin:2px 0 0">Logging for ${dlabel(S.date)}</p>`+WT.map(([k,n])=>{const c=(D.plan[k]||[]).join('|').split('|').filter(i=>em[i]).length;return`<button class="tile" style="width:100%;margin-top:10px;min-height:80px;border-left:6px solid var(${WC[k]})" data-a="wkpick" data-v="${k}">${n}<span class="mute">${c} exercise${c===1?'':'s'}</span></button>`}).join('');
+  const items=D.plan[w.t]=(D.plan[w.t]||[]).map(it=>it.split('|').filter(x=>em[x]).join('|')).filter(Boolean);
   const back=`<button class="back" data-a="wkback">‹ Workouts</button>`;
-  if(w.ed||!ids.length){
-    const rows=ids.map((id,i)=>`<div class="set"><span><b>${esc(em[id].name)}</b><br><span class="mute">${CATS.find(c=>c[0]===em[id].cat)[1]}</span></span><span class="row"><button class="btn ghost sm" data-a="wkmv" data-v="${i}:-1" aria-label="Move up">↑</button><button class="btn ghost sm" data-a="wkmv" data-v="${i}:1" aria-label="Move down">↓</button><button class="del" data-a="wkrm" data-v="${i}">Remove</button></span></div>`).join('');
-    return back+`<h2>${TL[w.t]} plan</h2><p class="mute" style="margin:2px 0 0">Choose exercises in the order you do them. It stays until you change it.</p><div class="card">${rows||'<p class="empty">No exercises yet.</p>'}<div class="row" style="margin-top:10px"><select id="wkadd"><option value="">Add exercise…</option>${exOpts(ids)}</select><button class="btn" data-a="wkadd">Add</button></div></div>${ids.length?'<button class="btn" style="width:100%;margin-top:12px" data-a="wkgo">Start</button>':''}`}
-  if(w.i>=ids.length){const done=ids.map(id=>({e:em[id],s:D.sets.find(s=>s.ex===id&&s.date===S.date)})).filter(x=>x.s);
-    return back+`<h2>Workout done</h2><p class="mute" style="margin:2px 0 0">${dlabel(S.date)}</p><div class="card">${done.map(x=>`<div class="set"><span><b>${esc(x.e.name)}</b><br><b>${fmt(x.s.w)} kg × ${x.s.r}</b></span></div>`).join('')||'<p class="empty">Nothing logged.</p>'}</div><div class="row" style="margin-top:12px"><button class="btn ghost" data-a="wkprev">‹ Previous</button><button class="btn" style="flex:1" data-a="up">Finish</button></div>`}
-  const e=em[ids[w.i]],logged=D.sets.find(s=>s.ex===e.id&&s.date===S.date),l=lastSet(e.id),inc=e.inc||2.5;
-  const sg=l?(l.r>=12?{w:+(l.w+inc).toFixed(2),r:8}:{w:l.w,r:l.r+1}):null;
-  const pw=logged?logged.w:sg?sg.w:'',pr=logged?logged.r:sg?sg.r:'';
-  return back+`<div class="row" style="justify-content:space-between"><h2>${TL[w.t]} day</h2><button class="btn ghost sm" data-a="wked">Edit plan</button></div><p class="mute" style="margin:2px 0 0">${w.i+1} of ${ids.length} · ${dlabel(S.date)}</p>
-  <div class="card"><h2>${esc(e.name)}</h2><p class="mute" style="margin:4px 0 0">${l?`Last time: ${dlabel(l.date)} · ${fmt(l.w)} kg × ${l.r}`:'No earlier sets for this exercise'}</p>${l&&l.note?`<p class="mute" style="margin:2px 0 0">${esc(l.note)}</p>`:''}
-  <p class="mute" style="margin:4px 0 8px">${logged?'Already logged for this day. Change it below if needed.':sg?(l.r>=12?`Suggested: +${fmt(inc)} kg, reps back to 8`:'Suggested: +1 rep'):''}</p>
-  <div class="row"><input id="w" type="number" inputmode="decimal" step="0.25" min="0" placeholder="Weight (kg)" value="${pw}"><input id="r" type="number" inputmode="numeric" step="1" min="1" placeholder="Reps" value="${pr}"></div>
-  <input id="note" maxlength="300" placeholder="Note (optional)" value="${esc(logged&&logged.note||'')}" style="margin-top:8px">
-  <div class="row" style="margin-top:10px;justify-content:space-between"><span class="mute">Increase weight by</span><span class="row" style="gap:6px"><input data-inc="${e.id}" type="number" inputmode="decimal" step="0.25" min="0" value="${inc}" style="width:84px" aria-label="Weight increase in kg"><span class="mute">kg</span></span></div>
-  <div class="row" style="margin-top:12px"><button class="btn ghost" data-a="wkprev"${w.i?'':' disabled'}>‹</button><button class="btn" style="flex:1" data-a="wkdone" data-v="${e.id}">Done</button><button class="btn ghost" data-a="wkskip">Skip</button></div></div>`}
+  if(w.ed||!items.length){
+    const used=items.join('|').split('|');
+    const rows=items.map((it,i)=>{const p=it.split('|');return`<div class="set"><span><b>${p.map(x=>esc(em[x].name)).join(' + ')}</b><br><span class="mute">${p.length>1?'Superset':CATS.find(c=>c[0]===em[p[0]].cat)[1]}</span></span><span class="row"><button class="btn ghost sm" data-a="wkmv" data-v="${i}:-1" aria-label="Move up">↑</button><button class="btn ghost sm" data-a="wkmv" data-v="${i}:1" aria-label="Move down">↓</button><button class="del" data-a="wkrm" data-v="${i}">Remove</button></span></div>`}).join('');
+    return back+`<h2>${TL[w.t]} plan</h2><p class="mute" style="margin:2px 0 0">Choose exercises in the order you do them. It stays until you change it.</p><div class="card">${rows||'<p class="empty">No exercises yet.</p>'}
+    <div class="row" style="margin-top:10px"><select id="wkadd"><option value="">Add exercise…</option>${exOpts(used)}</select><button class="btn" data-a="wkadd">Add</button></div>
+    <p class="mute" style="margin:16px 0 6px">Superset: two exercises done back and forth</p>
+    <div class="row"><select id="wka"><option value="">First…</option>${exOpts(used)}</select><select id="wkb"><option value="">Second…</option>${exOpts(used)}</select></div>
+    <button class="btn ghost" style="margin-top:8px" data-a="wkpair">Add superset</button></div>${items.length?'<button class="btn go" style="width:100%;margin-top:12px" data-a="wkgo">Start</button>':''}`}
+  if(w.i>=items.length){const done=items.join('|').split('|').map(id=>({e:em[id],s:D.sets.find(s=>s.ex===id&&s.date===S.date)})).filter(x=>x.s);
+    return back+`<h2>Workout done</h2><p class="mute" style="margin:2px 0 0">${dlabel(S.date)}</p><div class="card">${done.map(x=>`<div class="set"><span><b>${esc(x.e.name)}</b><br><b>${fmt(x.s.w)} kg × ${x.s.r}</b></span></div>`).join('')||'<p class="empty">Nothing logged.</p>'}</div><div class="row" style="margin-top:12px"><button class="btn ghost" data-a="wkprev">‹ Previous</button><button class="btn go" style="flex:1" data-a="up">Finish</button></div>`}
+  const it=items[w.i],es=it.split('|').map(x=>em[x]),pair=es.length>1;
+  return back+`<div class="row" style="justify-content:space-between"><h2>${TL[w.t]} day</h2><button class="btn ghost sm" data-a="wked">Edit plan</button></div><p class="mute" style="margin:2px 0 0">${w.i+1} of ${items.length} · ${dlabel(S.date)}${pair?' · Superset: alternate between them, log the first set of each':''}</p>
+  ${es.map((e,k)=>exCard(e,k,pair?'AB'[k]:'')).join('')}
+  <div class="row" style="margin-top:12px"><button class="btn ghost" data-a="wkprev"${w.i?'':' disabled'}>‹</button><button class="btn go" style="flex:1" data-a="wkdone" data-v="${it}">Done</button><button class="btn ghost" data-a="wkskip">Skip</button></div>`}
 function render(){
   const nav=CATS.map(([k,n])=>`<button class="chip" aria-pressed="${S.cat===k}" data-a="cat" data-v="${k}">${n}</button>`).join('');
   let body=!S.cat?home():S.cat==='wk'?wkView():S.cat==='bw'?bwView():S.ex?detail():list();
@@ -225,7 +235,7 @@ function home(){
     if(k==='bw'){const l=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).pop();s=l?`Latest: ${fmt(l.w)} kg`:'No weight logged yet'}
     else{const c=D.ex.filter(e=>e.cat===k).length;s=c+(c===1?' exercise':' exercises')}
     return`<button class="tile" data-a="cat" data-v="${k}">${n}<span class="mute">${s}</span></button>`}).join('');
-  return bkStatus()+`<div class="tiles">${tiles}<button class="tile wide" data-a="cat" data-v="wk">Start workout<span class="mute">Push, pull or legs</span></button></div>`+calView()+prCard();
+  return bkStatus()+`<div class="tiles">${tiles}<button class="tile wide go" data-a="cat" data-v="wk">Start workout<span class="mute">Push, pull or legs</span></button></div>`+calView()+prCard();
 }
 function list(){
   const exs=D.ex.filter(e=>e.cat===S.cat);
@@ -318,8 +328,10 @@ document.addEventListener('click',e=>{
   else if(a==='wkadd'){const x=$('#wkadd').value;if(!x)return;D.plan[S.wk.t].push(x);save()}
   else if(a==='wkrm'){D.plan[S.wk.t].splice(+v,1);save()}
   else if(a==='wkmv'){const[i,d]=v.split(':').map(Number),p=D.plan[S.wk.t],j=i+d;if(j<0||j>=p.length)return;[p[i],p[j]]=[p[j],p[i]];save()}
-  else if(a==='wkdone'){const w=parseFloat($('#w').value),r=parseInt($('#r').value,10);if(isNaN(w)||w<0||isNaN(r)||r<1){toast('Enter a weight (0 or more) and reps (1 or more).');return}
-    D.sets=D.sets.filter(s=>!(s.ex===v&&s.date===S.date));D.sets.push({id:uid(),ex:v,date:S.date,w,r,note:$('#note').value.trim()});save();S.wk.i++}
+  else if(a==='wkpair'){const x=$('#wka').value,y=$('#wkb').value;if(!x||!y||x===y){toast('Choose two different exercises.');return}D.plan[S.wk.t].push(x+'|'+y);save()}
+  else if(a==='wkdone'){const en=[];let bad=false;v.split('|').forEach((id,k)=>{const wv=$('#w'+k).value.trim(),rv=$('#r'+k).value.trim();if(!wv&&!rv)return;const w=parseFloat(wv),r=parseInt(rv,10);if(isNaN(w)||w<0||isNaN(r)||r<1){bad=true;return}en.push({id:uid(),ex:id,date:S.date,w,r,note:$('#note'+k).value.trim()})});
+    if(bad||!en.length){toast('Enter a weight (0 or more) and reps (1 or more).');return}
+    en.forEach(x=>{D.sets=D.sets.filter(q=>!(q.ex===x.ex&&q.date===S.date));D.sets.push(x)});save();S.wk.i++}
   else if(a==='etype'){const q=D.ex.find(x=>x.id===S.ex);if(q){if(v==='auto')delete q.type;else q.type=v;save()}}
   else if(a==='goex'){const e=D.ex.find(x=>x.id===v);if(!e)return;S.cat=e.cat;S.ex=null;hpush();S.ex=v;S.zoom=1;hpush()}
   else if(a==='goto'){S.date=v;window.scrollTo(0,0)}
