@@ -57,7 +57,7 @@ details{margin-top:24px}summary{color:var(--mute)}
 .dt{position:relative;display:inline-block;border:1.5px solid var(--line);background:var(--card);border-radius:10px;padding:10px 14px;font-weight:600}
 .dt input{position:absolute;inset:0;width:100%;height:100%;opacity:0;padding:0;border:0}
 .cwrap{overflow-x:auto}
-.dot.sel{r:7;stroke:var(--ink);stroke-width:2}
+.dot.sel{r:4.5;stroke:var(--ink);stroke-width:2}
 .ptinfo{min-height:3.4em;margin-top:6px}
 .ptinfo b{color:var(--ink);font-weight:600;font-size:16px}
 .zoom{margin-top:6px}
@@ -77,6 +77,9 @@ details{margin-top:24px}summary{color:var(--mute)}
 .lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--mute);margin-top:10px}.lg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
 .lg .a::before{background:var(--acc)}.lg .b::before{background:var(--ok)}.lg .c::before{background:var(--amb)}
 button:disabled{opacity:.4}
+.tile{position:relative}.tile.up{border-color:var(--c,var(--ok));box-shadow:0 0 14px color-mix(in srgb,var(--c,var(--ok)) 45%,transparent)}
+.nu{position:absolute;right:14px;top:50%;transform:translateY(-50%);border:1.5px solid var(--c,var(--ok));color:var(--c,var(--ok));border-radius:8px;padding:3px 10px;font:700 14px Barlow,sans-serif;letter-spacing:.5px}.nu.dn{border-color:var(--mute);color:var(--mute);font-weight:600}
+.offd{display:flex;justify-content:space-between;align-items:center;gap:10px;background:color-mix(in srgb,var(--amb) 18%,transparent);border:1.5px solid var(--amb);border-radius:12px;padding:8px 12px;margin-bottom:10px;font-size:15px}.dt.off{border-color:var(--amb);color:var(--amb)}
 .tile.go{background:var(--ok);border-color:var(--ok);color:var(--okink)}.tile.go .mute{color:inherit;opacity:.88}.btn.go{background:var(--ok);color:var(--okink)}
 .ex2{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px 14px;margin-top:8px;color:var(--ink);font:600 16px/1.35 Barlow,sans-serif}
 .bk{font-weight:600;font-size:15px;margin:2px 2px 10px}.bk.g{color:var(--ok)}.bk.n{color:var(--mute)}.bk.o{color:var(--amb)}.bk.r{color:var(--warn)}
@@ -86,7 +89,7 @@ select{font:inherit;color:var(--ink);background:var(--card);border:1.5px solid v
 .ex.drag{position:relative;z-index:5;border-color:var(--acc);box-shadow:0 6px 18px rgba(0,0,0,.28)}
 </style>
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-192-v2.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
 <div class="wrap" id="app"></div>
@@ -123,7 +126,7 @@ function chart(pts){
   const W=Math.round(340*S.zoom),H=190,l=40,r=14,t=20,b=26;CUR=pts;
   let lo=Math.min(...pts.map(p=>p.v)),hi=Math.max(...pts.map(p=>p.v));
   if(lo===hi){lo-=1;hi+=1}
-  const pad=(hi-lo)*.15;lo=Math.max(0,lo-pad);hi+=pad;
+  const pad=(hi-lo)*.15;lo=S.cat==='bw'?Math.max(0,lo-pad):0;hi+=pad;
   const ts=pts.map(p=>Date.parse(p.d)),t0=ts[0],t1=ts[ts.length-1];
   const X=i=>pts.length===1?l+(W-l-r)/2:l+(ts[i]-t0)/(t1-t0)*(W-l-r);
   const Y=v=>t+(hi-v)/(hi-lo)*(H-t-b);
@@ -131,7 +134,7 @@ function chart(pts){
   [lo,(lo+hi)/2,hi].forEach(v=>{g+=`<line class="ax" x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}"/><text class="tx" x="${l-5}" y="${Y(v)+3}" text-anchor="end">${fm(v)}</text>`});
   const line=pts.map((p,i)=>`${X(i)},${Y(p.v)}`).join(' ');
   g+=`<polyline class="ln" points="${line}"/>`;
-  pts.forEach((p,i)=>{g+=`<circle class="dot" id="pt${i}" cx="${X(i)}" cy="${Y(p.v)}" r="3.5"/><circle data-a="pt" data-v="${i}" cx="${X(i)}" cy="${Y(p.v)}" r="13" fill="transparent"/>`;
+  pts.forEach((p,i)=>{g+=`<circle class="dot" id="pt${i}" cx="${X(i)}" cy="${Y(p.v)}" r="2.2"/><circle data-a="pt" data-v="${i}" cx="${X(i)}" cy="${Y(p.v)}" r="13" fill="transparent"/>`;
     if(pts.length<=10)g+=`<text class="vl" x="${X(i)}" y="${Y(p.v)-8}" text-anchor="middle">${fm(p.v)}</text>`});
   g+=`<text class="tx" x="${l}" y="${H-8}" text-anchor="start">${dshort(pts[0].d)}</text>`;
   if(pts.length>1)g+=`<text class="tx" x="${W-r}" y="${H-8}" text-anchor="end">${dshort(pts[pts.length-1].d)}</text>`;
@@ -189,8 +192,8 @@ function calView(){
   <div class="lg"><span class="a">Push</span><span class="b">Pull</span><span class="c">Legs</span></div>
   <p class="mute" style="margin:10px 0 0">${days} workout day${days===1?'':'s'} this month · Push ${cnt.push} · Pull ${cnt.pull} · Legs ${cnt.legs}</p>
   <div class="row" style="margin-top:8px"><button class="btn ghost sm" data-a="caltoday">Today</button></div></div>
-  <div class="card"><b>${dlabel(S.date)}</b>${tt.length?`<span class="mute"> · ${tt.map(x=>TL[x]).join(' + ')}</span>`:''}${det||'<p class="empty">Nothing logged on this day.</p>'}
-  <p class="mute" style="margin:12px 0 0">This date is also the one used when you log or start a workout.</p></div>`}
+  ${det?`<div class="card"><b>${dlabel(S.date)}</b>${tt.length?`<span class="mute"> · ${tt.map(x=>TL[x]).join(' + ')}</span>`:''}${det}
+  </div>`:''}`}
 const WT=[['push','Push'],['pull','Pull'],['legs','Legs']],WC={push:'--acc',pull:'--ok',legs:'--amb'};
 function exOpts(skip){return CATS.filter(c=>c[0]!=='bw').map(([k,n])=>{const l=D.ex.filter(e=>e.cat===k&&!skip.includes(e.id));return l.length?`<optgroup label="${n}">${l.map(e=>`<option value="${e.id}">${esc(e.name)}</option>`).join('')}</optgroup>`:''}).join('')}
 function lastSet(id){const l=D.sets.filter(s=>s.ex===id&&s.date<S.date&&!/reps not recorded/.test(s.note||'')).sort((a,b)=>a.date<b.date?-1:1);return l[l.length-1]}
@@ -207,7 +210,7 @@ function exCard(e,k,tag){
 function wkView(){
   D.plan=D.plan||{push:[],pull:[],legs:[]};
   const w=S.wk||(S.wk={t:null,i:0,ed:false}),em={};D.ex.forEach(e=>em[e.id]=e);
-  if(!w.t)return`<button class="back" data-a="up">‹ All categories</button><h2>Start workout</h2><p class="mute" style="margin:2px 0 0">Logging for ${dlabel(S.date)}</p>`+WT.map(([k,n])=>{const c=(D.plan[k]||[]).join('|').split('|').filter(i=>em[i]).length;return`<button class="tile" style="width:100%;margin-top:10px;min-height:80px;border-left:6px solid var(${WC[k]})" data-a="wkpick" data-v="${k}">${n}<span class="mute">${c} exercise${c===1?'':'s'}</span></button>`}).join('');
+  if(!w.t)return`<button class="back" data-a="up">‹ All categories</button><h2>Start workout</h2><p class="mute" style="margin:2px 0 0">Logging for ${dlabel(S.date)}</p>`+WT.map(([k,n])=>{const c=(D.plan[k]||[]).join('|').split('|').filter(i=>em[i]).length,nt=nextType(),up=nt.n===k,dn=nt.last===k&&nt.d===S.date;return`<button class="tile${up?' up':''}" style="--c:var(${WC[k]});width:100%;margin-top:10px;min-height:80px;border-left:6px solid var(${WC[k]})" data-a="wkpick" data-v="${k}">${n}<span class="mute">${c} exercise${c===1?'':'s'}</span>${up?'<span class="nu">NEXT UP</span>':dn?'<span class="nu dn">LOGGED TODAY</span>':''}</button>`}).join('');
   const items=D.plan[w.t]=(D.plan[w.t]||[]).map(it=>it.split('|').filter(x=>em[x]).join('|')).filter(Boolean);
   const back=`<button class="back" data-a="wkback">‹ Workouts</button>`;
   if(w.ed||!items.length){
@@ -224,10 +227,16 @@ function wkView(){
   return back+`<div class="row" style="justify-content:space-between"><h2>${TL[w.t]} day</h2><button class="btn ghost sm" data-a="wked">Edit plan</button></div><p class="mute" style="margin:2px 0 0">${w.i+1} of ${items.length} · ${dlabel(S.date)}${pair?' · Superset: alternate between them, log the first set of each':''}</p>
   ${es.map((e,k)=>exCard(e,k,pair?'AB'[k]:'')).join('')}
   <div class="row" style="margin-top:12px"><button class="btn ghost" data-a="wkprev"${w.i?'':' disabled'}>‹</button><button class="btn go" style="flex:1" data-a="wkdone" data-v="${it}">Done</button><button class="btn ghost" data-a="wkskip">Skip</button></div>`}
+function nextType(){
+  const em={};D.ex.forEach(e=>em[e.id]=e);const by={};
+  D.sets.forEach(s=>{if(s.date>S.date)return;const e=em[s.ex];if(!e)return;const t=etype(e);if(t==='abs')return;(by[s.date]=by[s.date]||{push:0,pull:0,legs:0})[t]++});
+  const ds=Object.keys(by).sort();if(!ds.length)return{n:'push'};
+  const d=ds[ds.length-1],o=by[d],order=['push','pull','legs'],last=order.slice().sort((a,b)=>o[b]-o[a])[0];
+  return{n:order[(order.indexOf(last)+1)%3],last,d}}
 function render(){
   const nav=CATS.map(([k,n])=>`<button class="chip" aria-pressed="${S.cat===k}" data-a="cat" data-v="${k}">${n}</button>`).join('');
   let body=!S.cat?home():S.cat==='wk'?wkView():S.cat==='bw'?bwView():S.ex?detail():list();
-  $('#app').innerHTML=`<header><h1>Gym Log</h1><label class="dt">${dlabel(S.date)}<input type="date" id="date" value="${S.date}" aria-label="Date to log"></label></header>${body}${S.cat?'':backup()}`;
+  $('#app').innerHTML=`<header><h1>Gym Log</h1><label class="dt${S.date!==today()?' off':''}">${dlabel(S.date)}<input type="date" id="date" value="${S.date}" aria-label="Date to log"></label></header>${S.date!==today()?`<div class="offd"><span>Logging for <b>${dlabel(S.date)}</b></span><button class="btn sm" data-a="caltoday">Back to today</button></div>`:''}${body}${S.cat?'':backup()}`;
   {const c=$('#cwrap');if(c)c.scrollLeft=c.scrollWidth}
 }
 function home(){
@@ -235,7 +244,7 @@ function home(){
     if(k==='bw'){const l=D.bw.slice().sort((a,b)=>a.d<b.d?-1:1).pop();s=l?`Latest: ${fmt(l.w)} kg`:'No weight logged yet'}
     else{const c=D.ex.filter(e=>e.cat===k).length;s=c+(c===1?' exercise':' exercises')}
     return`<button class="tile" data-a="cat" data-v="${k}">${n}<span class="mute">${s}</span></button>`}).join('');
-  return bkStatus()+`<div class="tiles">${tiles}<button class="tile wide go" data-a="cat" data-v="wk">Start workout<span class="mute">Push, pull or legs</span></button></div>`+calView()+prCard();
+  return bkStatus()+`<div class="tiles">${tiles}<button class="tile wide go" data-a="cat" data-v="wk">Start workout<span class="mute">Next up: ${TL[nextType().n]}</span></button></div>`+calView()+prCard();
 }
 function list(){
   const exs=D.ex.filter(e=>e.cat===S.cat);
